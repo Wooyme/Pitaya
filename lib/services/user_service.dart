@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social_media_app/models/user.dart';
@@ -25,7 +26,7 @@ class UserService extends Service {
 
 //updates user profile in the Edit Profile Screen
   updateProfile(
-      {File image, String username, String bio, String country}) async {
+      {Uint8List image, String username, String bio, String country}) async {
     DocumentSnapshot doc = await usersRef.doc(currentUid()).get();
     var users = UserModel.fromJson(doc.data());
     users?.username = username;

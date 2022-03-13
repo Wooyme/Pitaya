@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_web/image_picker_web.dart';
 import 'package:social_media_app/models/user.dart';
 import 'package:social_media_app/services/user_service.dart';
 import 'package:social_media_app/utils/constants.dart';
@@ -19,7 +21,7 @@ class EditProfileViewModel extends ChangeNotifier {
   String country;
   String username;
   String bio;
-  File image;
+  Uint8List image;
   String imgLink;
 
   setUser(UserModel val) {
@@ -86,30 +88,7 @@ class EditProfileViewModel extends ChangeNotifier {
     loading = true;
     notifyListeners();
     try {
-      PickedFile pickedFile = await picker.getImage(
-        source: camera ? ImageSource.camera : ImageSource.gallery,
-      );
-      File croppedFile = await ImageCropper.cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatioPresets: [
-          CropAspectRatioPreset.square,
-          CropAspectRatioPreset.ratio3x2,
-          CropAspectRatioPreset.original,
-          CropAspectRatioPreset.ratio4x3,
-          CropAspectRatioPreset.ratio16x9
-        ],
-        androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Crop Image',
-          toolbarColor: Constants.lightAccent,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-        ),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
-        ),
-      );
-      image = File(croppedFile.path);
+      image = await ImagePickerWeb.getImageAsBytes();
       loading = false;
       notifyListeners();
     } catch (e) {

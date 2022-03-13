@@ -1,10 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:social_media_app/chats/recent_chats.dart';
 import 'package:social_media_app/models/post.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/indicators.dart';
 import 'package:social_media_app/widgets/userpost.dart';
 
@@ -16,7 +15,7 @@ class Timeline extends StatefulWidget {
 class _TimelineState extends State<Timeline> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  List<DocumentSnapshot> post = [];
+  List<Map<String,dynamic>> post = [];
 
   bool isLoading = false;
 
@@ -24,7 +23,7 @@ class _TimelineState extends State<Timeline> {
 
   int documentLimit = 10;
 
-  DocumentSnapshot lastDocument;
+  Map<String,String> lastDocuments; //every db has its own last document
 
   ScrollController _scrollController;
 
@@ -38,24 +37,13 @@ class _TimelineState extends State<Timeline> {
     setState(() {
       isLoading = true;
     });
-    QuerySnapshot querySnapshot;
-    if (lastDocument == null) {
-      querySnapshot = await postRef
-          .orderBy('timestamp', descending: false)
-          .limit(documentLimit)
-          .get();
-    } else {
-      querySnapshot = await postRef
-          .orderBy('timestamp', descending: false)
-          .startAfterDocument(lastDocument)
-          .limit(documentLimit)
-          .get();
-    }
-    if (querySnapshot.docs.length < documentLimit) {
+    List<List<Map<String,dynamic>>> querySnapshot;
+    querySnapshot = await queryAllFollowingPosts(lastDocuments,documentLimit);
+    if (querySnapshot.length < documentLimit) {
       hasMore = false;
     }
-    lastDocument = querySnapshot.docs[querySnapshot.docs.length - 1];
-    post.addAll(querySnapshot.docs);
+    lastDocuments = Map.fromIterable(querySnapshot.map((e) => e.last),key:(e)=>e["dbId"],value:(e)=>e["postId"]);
+    post.addAll(querySnapshot.expand((element) => element));
     setState(() {
       isLoading = false;
     });
@@ -112,7 +100,7 @@ class _TimelineState extends State<Timeline> {
               itemCount: post.length,
               itemBuilder: (context, index) {
                 internetChecker(context);
-                PostModel posts = PostModel.fromJson(post[index].data());
+                PostModel posts = PostModel.fromJson(post[index]);
                 return Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: UserPost(post: posts),

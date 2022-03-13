@@ -7,7 +7,7 @@ import 'package:social_media_app/pages/notification.dart';
 import 'package:social_media_app/pages/profile.dart';
 import 'package:social_media_app/pages/search.dart';
 import 'package:social_media_app/pages/feeds.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 
 class TabScreen extends StatefulWidget {
   @override
@@ -27,7 +27,7 @@ class _TabScreenState extends State<TabScreen> {
     {
       'title': 'Search',
       'icon': Feather.search,
-      'page': Search(),
+      'page': Text('nes'),
       'index': 1,
     },
     {
@@ -45,7 +45,7 @@ class _TabScreenState extends State<TabScreen> {
     {
       'title': 'Profile',
       'icon': CupertinoIcons.person,
-      'page': Profile(profileId: firebaseAuth.currentUser.uid),
+      'page': Profile(profileId: getDbId()),
       'index': 4,
     },
   ];

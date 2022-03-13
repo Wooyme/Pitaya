@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:social_media_app/auth/register/profile_pic.dart';
 import 'package:social_media_app/services/auth_service.dart';
+import 'package:social_media_app/utils/core.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
@@ -30,14 +31,8 @@ class RegisterViewModel extends ChangeNotifier {
         loading = true;
         notifyListeners();
         try {
-          bool success = await auth.createUser(
-            name: username,
-            email: email,
-            password: password,
-            country: country,
-          );
-          print(success);
-          if (success) {
+          var id = await registerUser(username);
+          if (id!=null) {
             Navigator.of(context).pushReplacement(
               CupertinoPageRoute(
                 builder: (_) => ProfilePicture(),

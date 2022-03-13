@@ -18,7 +18,7 @@ class CommentModel {
   CommentModel.fromJson(Map<String, dynamic> json) {
     username = json['username'];
     comment = json['comment'];
-    timestamp = json['timestamp'];
+    timestamp = Timestamp(json['timestamp']??0, 0);
     userDp = json['userDp'];
     userId = json['userId'];
   }
@@ -27,7 +27,7 @@ class CommentModel {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['username'] = this.username;
     data['comment'] = this.comment;
-    data['timestamp'] = this.timestamp;
+    data['timestamp'] = this.timestamp.seconds;
     data['userDp'] = this.userDp;
     data['userId'] = this.userId;
     return data;

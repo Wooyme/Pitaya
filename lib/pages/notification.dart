@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:social_media_app/components/notification_stream_wrapper.dart';
 import 'package:social_media_app/models/notification.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/notification_items.dart';
 
 class Activities extends StatefulWidget {
@@ -11,8 +12,16 @@ class Activities extends StatefulWidget {
 }
 
 class _ActivitiesState extends State<Activities> {
+  StreamController<List<Map<String, dynamic>>> _notificationEvent;
+
   currentUserId() {
-    return firebaseAuth.currentUser.uid;
+    return getDbId();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationEvent = new StreamController();
   }
 
   @override
@@ -51,15 +60,10 @@ class _ActivitiesState extends State<Activities> {
     return ActivityStreamWrapper(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      stream: notificationRef
-          .doc(currentUserId())
-          .collection('notifications')
-          .orderBy('timestamp', descending: true)
-          .limit(20)
-          .snapshots(),
+      stream: _notificationEvent.stream,
       physics: NeverScrollableScrollPhysics(),
-      itemBuilder: (_, DocumentSnapshot snapshot) {
-        ActivityModel activities = ActivityModel.fromJson(snapshot.data());
+      itemBuilder: (_, Map<String, dynamic> snapshot) {
+        ActivityModel activities = ActivityModel.fromJson(snapshot);
         return ActivityItems(
           activity: activities,
         );
@@ -68,17 +72,7 @@ class _ActivitiesState extends State<Activities> {
   }
 
   deleteAllItems() async {
-//delete all notifications associated with the authenticated user
-    QuerySnapshot notificationsSnap = await notificationRef
-        .doc(firebaseAuth.currentUser.uid)
-        .collection('notifications')
-        .get();
-    notificationsSnap.docs.forEach(
-      (doc) {
-        if (doc.exists) {
-          doc.reference.delete();
-        }
-      },
-    );
+    //delete all notifications associated with the authenticated user
+    await deleteNotifications(null);
   }
 }

@@ -84,61 +84,6 @@ class _RegisterState extends State<Register> {
             nextFocusNode: viewModel.emailFN,
           ),
           SizedBox(height: 20.0),
-          TextFormBuilder(
-            enabled: !viewModel.loading,
-            prefix: Feather.mail,
-            hintText: "Email",
-            textInputAction: TextInputAction.next,
-            validateFunction: Validations.validateEmail,
-            onSaved: (String val) {
-              viewModel.setEmail(val);
-            },
-            focusNode: viewModel.emailFN,
-            nextFocusNode: viewModel.countryFN,
-          ),
-          SizedBox(height: 20.0),
-          TextFormBuilder(
-            enabled: !viewModel.loading,
-            prefix: Feather.map_pin,
-            hintText: "Country",
-            textInputAction: TextInputAction.next,
-            validateFunction: Validations.validateName,
-            onSaved: (String val) {
-              viewModel.setCountry(val);
-            },
-            focusNode: viewModel.countryFN,
-            nextFocusNode: viewModel.passFN,
-          ),
-          SizedBox(height: 20.0),
-          PasswordFormBuilder(
-            enabled: !viewModel.loading,
-            prefix: Feather.lock,
-            suffix: Feather.eye,
-            hintText: "Password",
-            textInputAction: TextInputAction.next,
-            validateFunction: Validations.validatePassword,
-            obscureText: true,
-            onSaved: (String val) {
-              viewModel.setPassword(val);
-            },
-            focusNode: viewModel.passFN,
-            nextFocusNode: viewModel.cPassFN,
-          ),
-          SizedBox(height: 20.0),
-          PasswordFormBuilder(
-            enabled: !viewModel.loading,
-            prefix: Feather.lock,
-            hintText: "Confirm Password",
-            textInputAction: TextInputAction.done,
-            validateFunction: Validations.validatePassword,
-            submitAction: () => viewModel.register(context),
-            obscureText: true,
-            onSaved: (String val) {
-              viewModel.setConfirmPass(val);
-            },
-            focusNode: viewModel.cPassFN,
-          ),
-          SizedBox(height: 25.0),
           Container(
             height: 45.0,
             width: 180.0,

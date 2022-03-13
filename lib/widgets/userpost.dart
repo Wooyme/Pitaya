@@ -1,9 +1,9 @@
+import 'dart:async';
+
 import 'package:animations/animations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-//import 'package:flutter_icons/flutter_icons.dart';
 import 'package:social_media_app/components/custom_card.dart';
 import 'package:social_media_app/components/custom_image.dart';
 import 'package:social_media_app/models/post.dart';
@@ -12,7 +12,7 @@ import 'package:social_media_app/pages/profile.dart';
 import 'package:social_media_app/screens/comment.dart';
 import 'package:social_media_app/screens/view_image.dart';
 import 'package:social_media_app/services/post_service.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class UserPost extends StatelessWidget {
@@ -20,13 +20,17 @@ class UserPost extends StatelessWidget {
 
   UserPost({this.post});
   final DateTime timestamp = DateTime.now();
-
+  
   currentUserId() {
-    return firebaseAuth.currentUser.uid;
+    return getDbId();
   }
 
   final PostService services = PostService();
-
+  final StreamController<int> _followNumEvent = new StreamController();
+  final StreamController<int> _commentsNumEvent = new StreamController();
+  final StreamController<bool> _isFollowingEvent = new StreamController();
+  final StreamController<Map<String,dynamic>> _userEvent = new StreamController();
+  
   @override
   Widget build(BuildContext context) {
     return CustomCard(
@@ -71,7 +75,7 @@ class UserPost extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 0.0),
                           child: Row(
                             children: [
-                              buildLikeButton(),
+                              buildFollowButton(),
                               InkWell(
                                 borderRadius: BorderRadius.circular(10.0),
                                 onTap: () {
@@ -95,18 +99,13 @@ class UserPost extends StatelessWidget {
                               child: Padding(
                                 padding: const EdgeInsets.only(left: 5.0),
                                 child: StreamBuilder(
-                                  stream: likesRef
-                                      .where('postId', isEqualTo: post.postId)
-                                      .snapshots(),
+                                  stream: _followNumEvent.stream,
                                   builder: (context,
-                                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                                      AsyncSnapshot<int> snapshot) {
                                     if (snapshot.hasData) {
-                                      QuerySnapshot snap = snapshot.data;
-                                      List<DocumentSnapshot> docs = snap.docs;
-                                      return buildLikesCount(
-                                          context, docs?.length ?? 0);
+                                      return buildFollowersCount(context, snapshot.data);
                                     } else {
-                                      return buildLikesCount(context, 0);
+                                      return buildFollowersCount(context, 0);
                                     }
                                   },
                                 ),
@@ -114,17 +113,11 @@ class UserPost extends StatelessWidget {
                             ),
                             SizedBox(width: 5.0),
                             StreamBuilder(
-                              stream: commentRef
-                                  .doc(post.postId)
-                                  .collection("comments")
-                                  .snapshots(),
+                              stream: _commentsNumEvent.stream,
                               builder: (context,
-                                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                                  AsyncSnapshot<int> snapshot) {
                                 if (snapshot.hasData) {
-                                  QuerySnapshot snap = snapshot.data;
-                                  List<DocumentSnapshot> docs = snap.docs;
-                                  return buildCommentsCount(
-                                      context, docs?.length ?? 0);
+                                  return buildCommentsCount(context, snapshot.data);
                                 } else {
                                   return buildCommentsCount(context, 0);
                                 }
@@ -168,31 +161,20 @@ class UserPost extends StatelessWidget {
     );
   }
 
-  buildLikeButton() {
+  buildFollowButton() {
     return StreamBuilder(
-      stream: likesRef
-          .where('postId', isEqualTo: post.postId)
-          .where('userId', isEqualTo: currentUserId())
-          .snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+      stream: _isFollowingEvent.stream,
+      builder: (context, AsyncSnapshot<bool> snapshot) {
         if (snapshot.hasData) {
-          List<QueryDocumentSnapshot> docs = snapshot?.data?.docs ?? [];
           return IconButton(
             onPressed: () {
-              if (docs.isEmpty) {
-                likesRef.add({
-                  'userId': currentUserId(),
-                  'postId': post.postId,
-                  'dateCreated': Timestamp.now(),
-                });
-                addLikesToNotification();
+              if (snapshot.data) {
+                follow(post.ownerId);
               } else {
-                likesRef.doc(docs[0].id).delete();
-                services.removeLikeFromNotification(
-                    post.ownerId, post.postId, currentUserId());
+                unfollow(post.ownerId);
               }
             },
-            icon: docs.isEmpty
+            icon: snapshot.data
                 ? Icon(
                     CupertinoIcons.heart,
                   )
@@ -206,19 +188,8 @@ class UserPost extends StatelessWidget {
       },
     );
   }
-
-  addLikesToNotification() async {
-    bool isNotMe = currentUserId() != post.ownerId;
-
-    if (isNotMe) {
-      DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-      user = UserModel.fromJson(doc.data());
-      services.addLikesToNotification("like", user.username, currentUserId(),
-          post.postId, post.mediaUrl, post.ownerId, user.photoUrl);
-    }
-  }
-
-  buildLikesCount(BuildContext context, int count) {
+  
+  buildFollowersCount(BuildContext context, int count) {
     return Padding(
       padding: const EdgeInsets.only(left: 7.0),
       child: Text(
@@ -244,11 +215,10 @@ class UserPost extends StatelessWidget {
   buildUser(BuildContext context) {
     bool isMe = currentUserId() == post.ownerId;
     return StreamBuilder(
-      stream: usersRef.doc(post.ownerId).snapshots(),
+      stream: _userEvent.stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          DocumentSnapshot snap = snapshot.data;
-          UserModel user = UserModel.fromJson(snap.data());
+          UserModel user = UserModel.fromJson(snapshot.data);
           return Visibility(
             visible: !isMe,
             child: Align(

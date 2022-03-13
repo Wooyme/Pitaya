@@ -1,4 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
@@ -6,7 +7,7 @@ import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media_app/components/custom_image.dart';
 import 'package:social_media_app/models/user.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/view_models/auth/posts_view_model.dart';
 import 'package:social_media_app/widgets/indicators.dart';
 
@@ -16,10 +17,24 @@ class CreatePost extends StatefulWidget {
 }
 
 class _CreatePostState extends State<CreatePost> {
+  StreamController<Map<String,dynamic>> _profileEvent;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileEvent = new StreamController();
+    initProfile();
+  }
+
+  initProfile() async{
+    var myProfile = await getMyProfile();
+    _profileEvent.add(myProfile);
+  }
+
   @override
   Widget build(BuildContext context) {
     currentUserId() {
-      return firebaseAuth.currentUser.uid;
+      return getDbId();
     }
 
     PostsViewModel viewModel = Provider.of<PostsViewModel>(context);
@@ -69,10 +84,10 @@ class _CreatePostState extends State<CreatePost> {
             children: [
               SizedBox(height: 15.0),
               StreamBuilder(
-                stream: usersRef.doc(currentUserId()).snapshots(),
-                builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+                stream: _profileEvent.stream,
+                builder: (context, AsyncSnapshot<Map<String,dynamic>> snapshot) {
                   if (snapshot.hasData) {
-                    UserModel user = UserModel.fromJson(snapshot.data.data());
+                    UserModel user = UserModel.fromJson(snapshot.data);
                     return ListTile(
                       leading: CircleAvatar(
                         radius: 25.0,
@@ -111,7 +126,7 @@ class _CreatePostState extends State<CreatePost> {
                           height: MediaQuery.of(context).size.width - 30,
                           fit: BoxFit.cover,
                         )
-                      : viewModel.mediaUrl == null
+                      : viewModel.media == null
                           ? Center(
                               child: Text(
                                 'Upload a Photo',
@@ -120,8 +135,8 @@ class _CreatePostState extends State<CreatePost> {
                                 ),
                               ),
                             )
-                          : Image.file(
-                              viewModel.mediaUrl,
+                          : Image.memory(
+                              viewModel.media,
                               width: MediaQuery.of(context).size.width,
                               height: MediaQuery.of(context).size.width - 30,
                               fit: BoxFit.cover,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_web/image_picker_web.dart';
 import 'package:social_media_app/models/post.dart';
 import 'package:social_media_app/screens/mainscreen.dart';
 import 'package:social_media_app/services/post_service.dart';
@@ -25,7 +27,7 @@ class PostsViewModel extends ChangeNotifier {
   //Variables
   bool loading = false;
   String username;
-  File mediaUrl;
+  Uint8List media;
   final picker = ImagePicker();
   String location;
   Position position;
@@ -94,30 +96,7 @@ class PostsViewModel extends ChangeNotifier {
     loading = true;
     notifyListeners();
     try {
-      PickedFile pickedFile = await picker.getImage(
-        source: camera ? ImageSource.camera : ImageSource.gallery,
-      );
-      File croppedFile = await ImageCropper.cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatioPresets: [
-          CropAspectRatioPreset.square,
-          CropAspectRatioPreset.ratio3x2,
-          CropAspectRatioPreset.original,
-          CropAspectRatioPreset.ratio4x3,
-          CropAspectRatioPreset.ratio16x9
-        ],
-        androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Crop Image',
-          toolbarColor: Constants.lightAccent,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-        ),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
-        ),
-      );
-      mediaUrl = File(croppedFile.path);
+      media = await ImagePickerWeb.getImageAsBytes();
       loading = false;
       notifyListeners();
     } catch (e) {
@@ -155,7 +134,7 @@ class PostsViewModel extends ChangeNotifier {
     try {
       loading = true;
       notifyListeners();
-      await postService.uploadPost(mediaUrl, location, description);
+      await postService.uploadPost(media, location, description);
       loading = false;
       resetPost();
       notifyListeners();
@@ -169,14 +148,15 @@ class PostsViewModel extends ChangeNotifier {
   }
 
   uploadProfilePicture(BuildContext context) async {
-    if (mediaUrl == null) {
+    if (media == null) {
       showInSnackBar('Please select an image',context);
     } else {
       try {
         loading = true;
         notifyListeners();
         await postService.uploadProfilePicture(
-            mediaUrl, firebaseAuth.currentUser);
+            media);
+        media = null;
         loading = false;
         Navigator.of(context)
             .pushReplacement(CupertinoPageRoute(builder: (_) => TabScreen()));
@@ -191,7 +171,7 @@ class PostsViewModel extends ChangeNotifier {
   }
 
   resetPost() {
-    mediaUrl = null;
+    media = null;
     description = null;
     location = null;
     edit = null;

@@ -98,7 +98,7 @@ class _EditProfileState extends State<EditProfile> {
                               padding: const EdgeInsets.all(1.0),
                               child: CircleAvatar(
                                 radius: 65.0,
-                                backgroundImage: FileImage(viewModel.image),
+                                backgroundImage: MemoryImage(viewModel.image),
                               ),
                             ),
                 ),

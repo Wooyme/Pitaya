@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
@@ -10,7 +10,7 @@ import 'package:social_media_app/models/post.dart';
 import 'package:social_media_app/models/user.dart';
 import 'package:social_media_app/screens/edit_profile.dart';
 import 'package:social_media_app/screens/settings.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/post_tiles.dart';
 import 'package:social_media_app/widgets/posts_view.dart';
 
@@ -24,7 +24,6 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile>  {
-  User user;
   bool isLoading = false;
   int postCount = 0;
   int followersCount = 0;
@@ -34,26 +33,41 @@ class _ProfileState extends State<Profile>  {
   UserModel users;
   final DateTime timestamp = DateTime.now();
   ScrollController controller = ScrollController();
-
+  StreamController<Map<String,dynamic>> _profileEvent;
+  StreamController<int> _postNumEvent;
+  StreamController<int> _followerNumEvent;
+  StreamController<int> _followingNumEvent;
+  StreamController<List<Map<String,dynamic>>> _postsEvent;
   currentUserId() {
-    return firebaseAuth.currentUser?.uid;
+    return getDbId();
   }
 
   @override
   void initState() {
     super.initState();
+    _profileEvent = new StreamController();
+    _postNumEvent = new StreamController();
+    _followerNumEvent = new StreamController();
+    _followingNumEvent = new StreamController();
+    _postsEvent = new StreamController();
     checkIfFollowing();
+    initProfile();
   }
 
   checkIfFollowing() async {
-    DocumentSnapshot doc = await followersRef
-        .doc(widget.profileId)
-        .collection('userFollowers')
-        .doc(currentUserId())
-        .get();
+    bool _isFollowing = await hasFollowing(currentUserId());
     setState(() {
-      isFollowing = doc.exists;
+      isFollowing = _isFollowing;
     });
+  }
+
+  initProfile() async{
+    var myProfile = await getMyProfile();
+    _profileEvent.add(myProfile);
+    var myPostsNum = await countMyPosts();
+    _postNumEvent.add(myPostsNum);
+    var myPosts = await getMyPosts(null, -1); //todo maybe pagination?
+    _postsEvent.add(myPosts);
   }
 
   @override
@@ -63,13 +77,13 @@ class _ProfileState extends State<Profile>  {
         centerTitle: true,
         title: Text('WOOBLE'),
         actions: [
-          widget.profileId == firebaseAuth.currentUser.uid
+          widget.profileId == currentUserId()
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.only(right: 25.0),
                     child: GestureDetector(
                       onTap: () {
-                        firebaseAuth.signOut();
+                        signOut();
                         Navigator.of(context).push(
                             CupertinoPageRoute(builder: (_) => Register()));
                       },
@@ -95,10 +109,10 @@ class _ProfileState extends State<Profile>  {
             expandedHeight: 220.0,
             flexibleSpace: FlexibleSpaceBar(
               background: StreamBuilder(
-                stream: usersRef.doc(widget.profileId).snapshots(),
-                builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+                stream: _profileEvent.stream,
+                builder: (context, AsyncSnapshot<Map<String,dynamic>> snapshot) {
                   if (snapshot.hasData) {
-                    UserModel user = UserModel.fromJson(snapshot.data.data());
+                    UserModel user = UserModel.fromJson(snapshot.data);
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -188,7 +202,7 @@ class _ProfileState extends State<Profile>  {
                                               ],
                                             ),
                                           )
-                                        : buildLikeButton()
+                                        : SizedBox()
                                   ],
                                 ),
                               ],
@@ -222,17 +236,11 @@ class _ProfileState extends State<Profile>  {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: <Widget>[
                                 StreamBuilder(
-                                  stream: postRef
-                                      .where('ownerId',
-                                          isEqualTo: widget.profileId)
-                                      .snapshots(),
+                                  stream: _postNumEvent.stream,
                                   builder: (context,
-                                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                                      AsyncSnapshot<int> snapshot) {
                                     if (snapshot.hasData) {
-                                      QuerySnapshot snap = snapshot.data;
-                                      List<DocumentSnapshot> docs = snap.docs;
-                                      return buildCount(
-                                          "POSTS", docs?.length ?? 0);
+                                      return buildCount("POSTS", snapshot.data);
                                     } else {
                                       return buildCount("POSTS", 0);
                                     }
@@ -247,17 +255,11 @@ class _ProfileState extends State<Profile>  {
                                   ),
                                 ),
                                 StreamBuilder(
-                                  stream: followersRef
-                                      .doc(widget.profileId)
-                                      .collection('userFollowers')
-                                      .snapshots(),
+                                  stream: _followerNumEvent.stream,
                                   builder: (context,
-                                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                                      AsyncSnapshot<int> snapshot) {
                                     if (snapshot.hasData) {
-                                      QuerySnapshot snap = snapshot.data;
-                                      List<DocumentSnapshot> docs = snap.docs;
-                                      return buildCount(
-                                          "FOLLOWERS", docs?.length ?? 0);
+                                      return buildCount("FOLLOWERS", snapshot.data);
                                     } else {
                                       return buildCount("FOLLOWERS", 0);
                                     }
@@ -272,17 +274,11 @@ class _ProfileState extends State<Profile>  {
                                   ),
                                 ),
                                 StreamBuilder(
-                                  stream: followingRef
-                                      .doc(widget.profileId)
-                                      .collection('userFollowing')
-                                      .snapshots(),
+                                  stream: _followingNumEvent.stream,
                                   builder: (context,
-                                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                                      AsyncSnapshot<int> snapshot) {
                                     if (snapshot.hasData) {
-                                      QuerySnapshot snap = snapshot.data;
-                                      List<DocumentSnapshot> docs = snap.docs;
-                                      return buildCount(
-                                          "FOLLOWING", docs?.length ?? 0);
+                                      return buildCount("FOLLOWING", snapshot.data);
                                     } else {
                                       return buildCount("FOLLOWING", 0);
                                     }
@@ -377,7 +373,7 @@ class _ProfileState extends State<Profile>  {
 
   buildProfileButton(user) {
     //if isMe then display "edit profile"
-    bool isMe = widget.profileId == firebaseAuth.currentUser.uid;
+    bool isMe = widget.profileId == currentUserId();
     if (isMe) {
       return buildButton(
           text: "Edit Profile",
@@ -435,98 +431,29 @@ class _ProfileState extends State<Profile>  {
   }
 
   handleUnfollow() async {
-    DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-    users = UserModel.fromJson(doc.data());
-    setState(() {
-      isFollowing = false;
-    });
-    //remove follower
-    followersRef
-        .doc(widget.profileId)
-        .collection('userFollowers')
-        .doc(currentUserId())
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        doc.reference.delete();
-      }
-    });
-    //remove following
-    followingRef
-        .doc(currentUserId())
-        .collection('userFollowing')
-        .doc(widget.profileId)
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        doc.reference.delete();
-      }
-    });
-    //remove from notifications feeds
-    notificationRef
-        .doc(widget.profileId)
-        .collection('notifications')
-        .doc(currentUserId())
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        doc.reference.delete();
-      }
-    });
+    await unfollow(currentUserId());
   }
 
   handleFollow() async {
-    DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-    users = UserModel.fromJson(doc.data());
-    setState(() {
-      isFollowing = true;
-    });
-    //updates the followers collection of the followed user
-    followersRef
-        .doc(widget.profileId)
-        .collection('userFollowers')
-        .doc(currentUserId())
-        .set({});
-    //updates the following collection of the currentUser
-    followingRef
-        .doc(currentUserId())
-        .collection('userFollowing')
-        .doc(widget.profileId)
-        .set({});
-    //update the notification feeds
-    notificationRef
-        .doc(widget.profileId)
-        .collection('notifications')
-        .doc(currentUserId())
-        .set({
-      "type": "follow",
-      "ownerId": widget.profileId,
-      "username": users.username,
-      "userId": users.id,
-      "userDp": users.photoUrl,
-      "timestamp": timestamp,
-    });
+    await follow(currentUserId());
   }
 
   buildPostView() {
-    if (isToggle == true) {
-      return buildGridPost();
-    } else if (isToggle == false) {
+    // if (isToggle == true) {
+    //   return buildGridPost();
+    // } else if (isToggle == false) {
       return buildPosts();
-    }
+    // }
   }
 
   buildPosts() {
     return StreamBuilderWrapper(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      stream: postRef
-          .where('ownerId', isEqualTo: widget.profileId)
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream: _postsEvent.stream,
       physics: NeverScrollableScrollPhysics(),
-      itemBuilder: (_, DocumentSnapshot snapshot) {
-        PostModel posts = PostModel.fromJson(snapshot.data());
+      itemBuilder: (_, Map<String,dynamic> snapshot) {
+        PostModel posts = PostModel.fromJson(snapshot);
         return Padding(
           padding: const EdgeInsets.only(bottom: 15.0),
           child: Posts(
@@ -537,67 +464,19 @@ class _ProfileState extends State<Profile>  {
     );
   }
 
-  buildGridPost() {
-    return StreamGridWrapper(
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      stream: postRef
-          .where('ownerId', isEqualTo: widget.profileId)
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      physics: NeverScrollableScrollPhysics(),
-      itemBuilder: (_, DocumentSnapshot snapshot) {
-        PostModel posts = PostModel.fromJson(snapshot.data());
-        return PostTile(
-          post: posts,
-        );
-      },
-    );
-  }
+  // buildGridPost() {
+  //   return StreamGridWrapper(
+  //     shrinkWrap: true,
+  //     padding: const EdgeInsets.symmetric(horizontal: 10.0),
+  //     stream: _postsEvent.stream,
+  //     physics: NeverScrollableScrollPhysics(),
+  //     itemBuilder: (_, Map<String,dynamic> snapshot) {
+  //       PostModel posts = PostModel.fromJson(snapshot);
+  //       return PostTile(
+  //         post: posts,
+  //       );
+  //     },
+  //   );
+  // }
 
-  buildLikeButton() {
-    return StreamBuilder(
-      stream: favUsersRef
-          .where('postId', isEqualTo: widget.profileId)
-          .where('userId', isEqualTo: currentUserId())
-          .snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasData) {
-          List<QueryDocumentSnapshot> docs = snapshot?.data?.docs ?? [];
-          return GestureDetector(
-            onTap: () {
-              if (docs.isEmpty) {
-                favUsersRef.add({
-                  'userId': currentUserId(),
-                  'postId': widget.profileId,
-                  'dateCreated': Timestamp.now(),
-                });
-              } else {
-                favUsersRef.doc(docs[0].id).delete();
-              }
-            },
-            child: Container(
-              decoration: BoxDecoration(boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 3.0,
-                  blurRadius: 5.0,
-                )
-              ], color: Colors.white, shape: BoxShape.circle),
-              child: Padding(
-                padding: EdgeInsets.all(3.0),
-                child: Icon(
-                  docs.isEmpty
-                      ? CupertinoIcons.heart
-                      : CupertinoIcons.heart_fill,
-                  color: Colors.red,
-                ),
-              ),
-            ),
-          );
-        }
-        return Container();
-      },
-    );
-  }
 }

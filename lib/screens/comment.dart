@@ -1,4 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:social_media_app/components/stream_comments_wrapper.dart';
@@ -6,7 +7,7 @@ import 'package:social_media_app/models/comments.dart';
 import 'package:social_media_app/models/post.dart';
 import 'package:social_media_app/models/user.dart';
 import 'package:social_media_app/services/post_service.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/cached_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -24,9 +25,38 @@ class _CommentsState extends State<Comments> {
   PostService services = PostService();
   final DateTime timestamp = DateTime.now();
   TextEditingController commentsTEC = TextEditingController();
+  StreamController<int> _commentsCountController = StreamController<int>();
+  StreamController<int> _likesCountController = StreamController<int>();
+  StreamController<bool> _isLikedController = StreamController<bool>();
+  StreamController<Map<String, dynamic>> _ownerController = StreamController<Map<String, dynamic>>();
+  StreamController<List<Map<String, dynamic>>> _commentsController = StreamController<List<Map<String, dynamic>>>();
 
   currentUserId() {
-    return firebaseAuth.currentUser.uid;
+    return getDbId();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initComments();
+    initOwner();
+  }
+
+
+  initComments() async {
+    List<Map<String, dynamic>> comments =
+    await getComments(widget.post.commentAddr, null, -1);
+    _commentsController.add(comments);
+    _commentsCountController.add(comments.length);
+    _likesCountController
+        .add(comments.where((element) => element['isLike'] == true).length);
+    _isLikedController.add(comments
+        .where((element) => element['isLike'] == true && element['userId'] == currentUserId()).length > 0);
+  }
+
+  initOwner() async {
+    Map<String, dynamic> owner = await getUser(widget.post.ownerId);
+    _ownerController.add(owner);
   }
 
   @override
@@ -109,12 +139,9 @@ class _CommentsState extends State<Comments> {
                         ),
                         trailing: GestureDetector(
                           onTap: () async {
-                            await services.uploadComment(
-                              currentUserId(),
-                              commentsTEC.text,
-                              widget.post.postId,
-                              widget.post.ownerId,
-                              widget.post.mediaUrl,
+                            await addComment(
+                              widget.post.commentAddr,
+                              commentsTEC.text
                             );
                             commentsTEC.clear();
                           },
@@ -172,15 +199,11 @@ class _CommentsState extends State<Comments> {
                       ),
                       SizedBox(width: 3.0),
                       StreamBuilder(
-                        stream: likesRef
-                            .where('postId', isEqualTo: widget.post.postId)
-                            .snapshots(),
+                        stream: _likesCountController.stream,
                         builder:
-                            (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                            (context, AsyncSnapshot<int> snapshot) {
                           if (snapshot.hasData) {
-                            QuerySnapshot snap = snapshot.data;
-                            List<DocumentSnapshot> docs = snap.docs;
-                            return buildLikesCount(context, docs?.length ?? 0);
+                            return buildLikesCount(context, snapshot.data);
                           } else {
                             return buildLikesCount(context, 0);
                           }
@@ -203,14 +226,10 @@ class _CommentsState extends State<Comments> {
     return CommentsStreamWrapper(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      stream: commentRef
-          .doc(widget.post.postId)
-          .collection('comments')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream: _commentsController.stream,
       physics: NeverScrollableScrollPhysics(),
-      itemBuilder: (_, DocumentSnapshot snapshot) {
-        CommentModel comments = CommentModel.fromJson(snapshot.data());
+      itemBuilder: (_, Map<String,dynamic> snapshot) {
+        CommentModel comments = CommentModel.fromJson(snapshot);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -246,29 +265,18 @@ class _CommentsState extends State<Comments> {
 
   buildLikeButton() {
     return StreamBuilder(
-      stream: likesRef
-          .where('postId', isEqualTo: widget.post.postId)
-          .where('userId', isEqualTo: currentUserId())
-          .snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+      stream: _isLikedController.stream,
+      builder: (context, AsyncSnapshot<bool> snapshot) {
         if (snapshot.hasData) {
-          List<QueryDocumentSnapshot> docs = snapshot?.data?.docs ?? [];
           return IconButton(
             onPressed: () {
-              if (docs.isEmpty) {
-                likesRef.add({
-                  'userId': currentUserId(),
-                  'postId': widget.post.postId,
-                  'dateCreated': Timestamp.now(),
-                });
-                addLikesToNotification();
+              if (!snapshot.data) {
+                like(widget.post.commentAddr);
               } else {
-                likesRef.doc(docs[0].id).delete();
-
-                removeLikeFromNotification();
+                unlike(widget.post.commentAddr);
               }
             },
-            icon: docs.isEmpty
+            icon: snapshot.data
                 ? Icon(
                     CupertinoIcons.heart,
                   )
@@ -294,44 +302,5 @@ class _CommentsState extends State<Comments> {
         ),
       ),
     );
-  }
-
-  addLikesToNotification() async {
-    bool isNotMe = currentUserId() != widget.post.ownerId;
-
-    if (isNotMe) {
-      DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-      user = UserModel.fromJson(doc.data());
-      notificationRef
-          .doc(widget.post.ownerId)
-          .collection('notifications')
-          .doc(widget.post.postId)
-          .set({
-        "type": "like",
-        "username": user.username,
-        "userId": currentUserId(),
-        "userDp": user.photoUrl,
-        "postId": widget.post.postId,
-        "mediaUrl": widget.post.mediaUrl,
-        "timestamp": timestamp,
-      });
-    }
-  }
-
-  removeLikeFromNotification() async {
-    bool isNotMe = currentUserId() != widget.post.ownerId;
-
-    if (isNotMe) {
-      DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-      user = UserModel.fromJson(doc.data());
-      notificationRef
-          .doc(widget.post.ownerId)
-          .collection('notifications')
-          .doc(widget.post.postId)
-          .get()
-          .then((doc) => {
-                if (doc.exists) {doc.reference.delete()}
-              });
-    }
   }
 }

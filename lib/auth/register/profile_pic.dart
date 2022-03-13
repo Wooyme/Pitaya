@@ -53,7 +53,7 @@ class _ProfilePictureState extends State<ProfilePicture> {
                           height: MediaQuery.of(context).size.width - 30,
                           fit: BoxFit.cover,
                         )
-                      : viewModel.mediaUrl == null
+                      : viewModel.media == null
                           ? Center(
                               child: Text(
                                 'upload your profile picture',
@@ -62,8 +62,8 @@ class _ProfilePictureState extends State<ProfilePicture> {
                                 ),
                               ),
                             )
-                          : Image.file(
-                              viewModel.mediaUrl,
+                          : Image.memory(
+                              viewModel.media,
                               width: MediaQuery.of(context).size.width,
                               height: MediaQuery.of(context).size.width - 30,
                               fit: BoxFit.cover,

@@ -7,10 +7,12 @@ import 'package:social_media_app/screens/mainscreen.dart';
 import 'package:social_media_app/services/user_service.dart';
 import 'package:social_media_app/utils/config.dart';
 import 'package:social_media_app/utils/constants.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/utils/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  initIpfs();
   await Config.initFirebase();
   runApp(MyApp());
 }

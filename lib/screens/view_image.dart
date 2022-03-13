@@ -1,11 +1,12 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'package:social_media_app/models/post.dart';
 import 'package:social_media_app/models/user.dart';
-import 'package:social_media_app/utils/firebase.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/indicators.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -21,12 +22,31 @@ class ViewImage extends StatefulWidget {
 final DateTime timestamp = DateTime.now();
 
 currentUserId() {
-  return firebaseAuth.currentUser.uid;
+  return getDbId();
 }
 
 UserModel user;
 
 class _ViewImageState extends State<ViewImage> {
+  StreamController<bool> _isLikedController = StreamController<bool>();
+
+  @override
+  void initState() {
+    super.initState();
+    initComments();
+  }
+
+  initComments() async {
+    List<Map<String, dynamic>> comments =
+        await getComments(widget.post.commentAddr, null, -1);
+    _isLikedController.add(comments
+            .where((element) =>
+                element['isLike'] == true &&
+                element['userId'] == currentUserId())
+            .length >
+        0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,69 +107,20 @@ class _ViewImageState extends State<ViewImage> {
     );
   }
 
-  addLikesToNotification() async {
-    bool isNotMe = currentUserId() != widget.post.ownerId;
-
-    if (isNotMe) {
-      DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-      user = UserModel.fromJson(doc.data());
-      notificationRef
-          .doc(widget.post.ownerId)
-          .collection('notifications')
-          .doc(widget.post.postId)
-          .set({
-        "type": "like",
-        "username": user.username,
-        "userId": currentUserId(),
-        "userDp": user.photoUrl,
-        "postId": widget.post.postId,
-        "mediaUrl": widget.post.mediaUrl,
-        "timestamp": timestamp,
-      });
-    }
-  }
-
-  removeLikeFromNotification() async {
-    bool isNotMe = currentUserId() != widget.post.ownerId;
-
-    if (isNotMe) {
-      DocumentSnapshot doc = await usersRef.doc(currentUserId()).get();
-      user = UserModel.fromJson(doc.data());
-      notificationRef
-          .doc(widget.post.ownerId)
-          .collection('notifications')
-          .doc(widget.post.postId)
-          .get()
-          .then((doc) => {
-                if (doc.exists) {doc.reference.delete()}
-              });
-    }
-  }
-
   buildLikeButton() {
     return StreamBuilder(
-      stream: likesRef
-          .where('postId', isEqualTo: widget.post.postId)
-          .where('userId', isEqualTo: currentUserId())
-          .snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+      stream: _isLikedController.stream,
+      builder: (context, AsyncSnapshot<bool> snapshot) {
         if (snapshot.hasData) {
-          List<QueryDocumentSnapshot> docs = snapshot?.data?.docs ?? [];
           return IconButton(
             onPressed: () {
-              if (docs.isEmpty) {
-                likesRef.add({
-                  'userId': currentUserId(),
-                  'postId': widget.post.postId,
-                  'dateCreated': Timestamp.now(),
-                });
-                addLikesToNotification();
+              if (!snapshot.data) {
+                like(widget.post.commentAddr);
               } else {
-                likesRef.doc(docs[0].id).delete();
-                removeLikeFromNotification();
+                unlike(widget.post.commentAddr);
               }
             },
-            icon: docs.isEmpty
+            icon: snapshot.data
                 ? Icon(
                     CupertinoIcons.heart,
                   )

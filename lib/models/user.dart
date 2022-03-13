@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class UserModel {
   String username;
   String email;
@@ -7,8 +5,8 @@ class UserModel {
   String country;
   String bio;
   String id;
-  Timestamp signedUpAt;
-  Timestamp lastSeen;
+  int signedUpAt;
+  int lastSeen;
   bool isOnline;
 
   UserModel(
@@ -27,9 +25,9 @@ class UserModel {
     email = json['email'];
     country = json['country'];
     photoUrl = json['photoUrl'];
-    signedUpAt = json['signedUpAt'];
-    isOnline = json['isOnline'];
-    lastSeen = json['lastSeen'];
+    signedUpAt = 0;
+    isOnline = true;
+    lastSeen = 0;
     bio = json['bio'];
     id = json['id'];
   }

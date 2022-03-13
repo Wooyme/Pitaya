@@ -4,12 +4,12 @@ import 'package:social_media_app/widgets/indicators.dart';
 
 typedef ItemBuilder<T> = Widget Function(
   BuildContext context,
-  DocumentSnapshot doc,
+  Map<String,dynamic> doc,
 );
 
 class ActivityStreamWrapper extends StatelessWidget {
   final Stream<dynamic> stream;
-  final ItemBuilder<DocumentSnapshot> itemBuilder;
+  final ItemBuilder<Map<String,dynamic>> itemBuilder;
   final Axis scrollDirection;
   final bool shrinkWrap;
   final ScrollPhysics physics;
@@ -31,7 +31,7 @@ class ActivityStreamWrapper extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          var list = snapshot.data.docs.toList();
+          var list = snapshot.data;
           return list.length == 0
               ? Container(
                   child: Center(
