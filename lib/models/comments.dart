@@ -18,7 +18,7 @@ class CommentModel {
   CommentModel.fromJson(Map<String, dynamic> json) {
     username = json['username'];
     comment = json['comment'];
-    timestamp = Timestamp(json['timestamp']??0, 0);
+    timestamp = Timestamp.fromMillisecondsSinceEpoch(json['timestamp']??0);
     userDp = json['userDp'];
     userId = json['userId'];
   }

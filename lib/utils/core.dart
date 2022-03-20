@@ -3,16 +3,21 @@ library core;
 
 import "dart:convert";
 import 'dart:js_util';
+import 'dart:typed_data';
 
 import 'package:js/js.dart';
 @JS('initIpfs')
 external dynamic _initIpfs();
+@JS("uploadBinary")
+external dynamic _uploadBinary(Uint8List binary);
 @JS('registerUser')
 external dynamic _registerUser(String name);
 @JS('getDbId')
 external String getDbId();
 @JS('getMyProfile')
 external dynamic _getMyProfile();
+@JS('updateMyPhoto')
+external dynamic updateMyPhoto(String path);
 @JS('getUser')
 external dynamic _getUser(String userAddr);
 @JS('getAllFollowing')
@@ -26,7 +31,7 @@ external dynamic _unfollow(String dbId);
 @JS('signOut')
 external dynamic signOut();
 @JS('queryAllFollowingPosts')
-external dynamic _queryAllFollowingPosts(Map<String,String> lastPosts,int limit);
+external dynamic _queryAllFollowingPosts(int limit);
 @JS('deleteNotifications')
 external dynamic _deleteNotifications(List<String> notificationIds);
 @JS("countMyPosts")
@@ -50,7 +55,9 @@ external dynamic _unlike(String commentAddr);
 Future initIpfs() async {
   await promiseToFuture(_initIpfs());
 }
-
+Future<String> uploadBinary(Uint8List binary) async{
+  return await promiseToFuture(_uploadBinary(binary));
+}
 Future<String> registerUser(String name) async{
   return await promiseToFuture(_registerUser(name));
 }
@@ -74,8 +81,9 @@ Future follow(String dbId) async{
 Future unfollow(String dbId) async{
   return await promiseToFuture(_unfollow(dbId));
 }
-Future<List<List<Map<String,dynamic>>>> queryAllFollowingPosts(Map<String,String> lastPosts,int limit) async{
-  return await promiseToFuture(_queryAllFollowingPosts(lastPosts,limit));
+Future<List<Map<String,dynamic>>> queryAllFollowingPosts(int limit) async{
+  List<dynamic> list = json.decode(await promiseToFuture(_queryAllFollowingPosts(limit)));
+  return list.map((e) => e as Map<String,dynamic>).toList();
 }
 Future deleteNotifications(List<String> notificationIds) async{
   await promiseToFuture(_deleteNotifications(notificationIds));

@@ -13,6 +13,7 @@ import 'package:social_media_app/screens/mainscreen.dart';
 import 'package:social_media_app/services/post_service.dart';
 import 'package:social_media_app/services/user_service.dart';
 import 'package:social_media_app/utils/constants.dart';
+import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/utils/firebase.dart';
 
 class PostsViewModel extends ChangeNotifier {
@@ -154,8 +155,8 @@ class PostsViewModel extends ChangeNotifier {
       try {
         loading = true;
         notifyListeners();
-        await postService.uploadProfilePicture(
-            media);
+        String path = await postService.uploadProfilePicture(media);
+        await updateMyPhoto(path);
         media = null;
         loading = false;
         Navigator.of(context)

@@ -13,12 +13,8 @@ class PostService extends Service {
   String postId = Uuid().v4();
 
 //uploads profile picture to the users collection
-  uploadProfilePicture(Uint8List image) async {
-    // String link = await uploadImage(profilePic, image);
-    // var ref = usersRef.doc(user.uid);
-    // ref.update({
-    //   "photoUrl": link,
-    // });
+  Future<String> uploadProfilePicture(Uint8List image) async {
+    return await uploadBinary(image);
   }
 
 //uploads post to the post collection

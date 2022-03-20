@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class UserModel {
   String username;
   String email;
@@ -37,7 +39,7 @@ class UserModel {
     data['username'] = this.username;
     data['country'] = this.country;
     data['email'] = this.email;
-    data['photoUrl'] = this.photoUrl;
+    data['photoUrl'] = this.photoUrl; //image ipfs hash
     data['bio'] = this.bio;
     data['signedUpAt'] = this.signedUpAt;
     data['isOnline'] = this.isOnline;

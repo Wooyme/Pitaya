@@ -5,6 +5,7 @@ import 'package:social_media_app/chats/recent_chats.dart';
 import 'package:social_media_app/models/post.dart';
 import 'package:social_media_app/utils/core.dart';
 import 'package:social_media_app/widgets/indicators.dart';
+import 'package:social_media_app/widgets/posts_view.dart';
 import 'package:social_media_app/widgets/userpost.dart';
 
 class Timeline extends StatefulWidget {
@@ -23,8 +24,6 @@ class _TimelineState extends State<Timeline> {
 
   int documentLimit = 10;
 
-  Map<String,String> lastDocuments; //every db has its own last document
-
   ScrollController _scrollController;
 
   getPosts() async {
@@ -37,13 +36,11 @@ class _TimelineState extends State<Timeline> {
     setState(() {
       isLoading = true;
     });
-    List<List<Map<String,dynamic>>> querySnapshot;
-    querySnapshot = await queryAllFollowingPosts(lastDocuments,documentLimit);
+    List<Map<String,dynamic>> querySnapshot = await queryAllFollowingPosts(documentLimit);
     if (querySnapshot.length < documentLimit) {
       hasMore = false;
     }
-    lastDocuments = Map.fromIterable(querySnapshot.map((e) => e.last),key:(e)=>e["dbId"],value:(e)=>e["postId"]);
-    post.addAll(querySnapshot.expand((element) => element));
+    post.addAll(querySnapshot);
     setState(() {
       isLoading = false;
     });
@@ -103,7 +100,7 @@ class _TimelineState extends State<Timeline> {
                 PostModel posts = PostModel.fromJson(post[index]);
                 return Padding(
                   padding: const EdgeInsets.all(10.0),
-                  child: UserPost(post: posts),
+                  child: Posts(post: posts),
                 );
               },
             ),

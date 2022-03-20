@@ -12,13 +12,20 @@ import 'package:social_media_app/view_models/auth/posts_view_model.dart';
 import 'package:social_media_app/widgets/indicators.dart';
 
 class CreatePost extends StatefulWidget {
+  bool uploadImage = false;
+  CreatePost(bool uploadImage){
+    this.uploadImage = uploadImage;
+  }
   @override
-  _CreatePostState createState() => _CreatePostState();
+  _CreatePostState createState() => _CreatePostState(this.uploadImage);
 }
 
 class _CreatePostState extends State<CreatePost> {
   StreamController<Map<String,dynamic>> _profileEvent;
-
+  bool uploadImage = false;
+  _CreatePostState(bool uploadImage) {
+    this.uploadImage = uploadImage;
+  }
   @override
   void initState() {
     super.initState();
@@ -105,7 +112,7 @@ class _CreatePostState extends State<CreatePost> {
                   return Container();
                 },
               ),
-              InkWell(
+              this.uploadImage?InkWell(
                 onTap: () => showImageChoices(context, viewModel),
                 child: Container(
                   width: MediaQuery.of(context).size.width,
@@ -142,7 +149,7 @@ class _CreatePostState extends State<CreatePost> {
                               fit: BoxFit.cover,
                             ),
                 ),
-              ),
+              ):Container(),
               SizedBox(height: 20.0),
               Text(
                 'Post Caption'.toUpperCase(),
@@ -157,7 +164,7 @@ class _CreatePostState extends State<CreatePost> {
                   hintText: 'Eg. This is very beautiful place!',
                   focusedBorder: UnderlineInputBorder(),
                 ),
-                maxLines: null,
+                maxLines: this.uploadImage?1:10,
                 onChanged: (val) => viewModel.setDescription(val),
               ),
               SizedBox(height: 20.0),

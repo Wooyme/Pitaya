@@ -71,12 +71,27 @@ class FabContainer extends StatelessWidget {
                   CupertinoIcons.camera_on_rectangle,
                   size: 25.0,
                 ),
-                title: Text('Make a Post'),
+                title: Text('Share Photo'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.of(context).push(
                     CupertinoPageRoute(
-                      builder: (_) => CreatePost(),
+                      builder: (_) => CreatePost(true),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  CupertinoIcons.collections,
+                  size: 25.0,
+                ),
+                title: Text('Say Something'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (_) => CreatePost(false),
                     ),
                   );
                 },

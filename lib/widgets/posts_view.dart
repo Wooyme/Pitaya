@@ -69,8 +69,10 @@ class _PostsState extends State<Posts> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-            CupertinoPageRoute(builder: (_) => ViewImage(post: widget.post)));
+        if(widget.post.mediaUrl!=null) {
+          Navigator.of(context).push(
+              CupertinoPageRoute(builder: (_) => ViewImage(post: widget.post)));
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -81,11 +83,11 @@ class _PostsState extends State<Posts> {
           mainAxisSize: MainAxisSize.min,
           children: [
             buildPostHeader(),
-            Container(
+            widget.post.mediaUrl!=null?Container(
               height: 320.0,
               width: MediaQuery.of(context).size.width - 18.0,
               child: cachedNetworkImage(widget.post.mediaUrl),
-            ),
+            ):Container(),
             Flexible(
               child: ListTile(
                 contentPadding:

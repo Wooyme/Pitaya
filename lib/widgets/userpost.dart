@@ -59,12 +59,12 @@ class UserPost extends StatelessWidget {
                       topLeft: Radius.circular(10.0),
                       topRight: Radius.circular(10.0),
                     ),
-                    child: CustomImage(
+                    child: post.mediaUrl!=null?CustomImage(
                       imageUrl: post?.mediaUrl ?? '',
                       height: 300.0,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                    ),
+                    ):Container(),
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 3.0),

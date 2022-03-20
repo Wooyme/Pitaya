@@ -171,11 +171,11 @@ class _CommentsState extends State<Comments> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        widget.post.mediaUrl!=null?Container(
           height: 250.0,
           width: MediaQuery.of(context).size.width - 20.0,
           child: cachedNetworkImage(widget.post.mediaUrl),
-        ),
+        ):Container(),
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Row(
@@ -276,7 +276,7 @@ class _CommentsState extends State<Comments> {
                 unlike(widget.post.commentAddr);
               }
             },
-            icon: snapshot.data
+            icon: !snapshot.data
                 ? Icon(
                     CupertinoIcons.heart,
                   )

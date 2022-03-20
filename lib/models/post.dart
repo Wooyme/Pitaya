@@ -25,8 +25,8 @@ class PostModel {
     location = json['location'];
     username= json['username'];
     description = json['description'];
-    mediaUrl = "https://avatars.githubusercontent.com/u/1";//json['mediaUrl'];
-    timestamp = Timestamp(0,0);
+    mediaUrl = json['mediaUrl'];
+    timestamp = Timestamp.fromMillisecondsSinceEpoch(json['timestamp']??0);
     commentAddr = json['commentAddr'];
   }
 
