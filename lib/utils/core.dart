@@ -10,6 +10,8 @@ import 'package:js/js.dart';
 external dynamic _initIpfs();
 @JS("uploadBinary")
 external dynamic _uploadBinary(Uint8List binary);
+@JS("login")
+external dynamic _login(String dbId);
 @JS('registerUser')
 external dynamic _registerUser(String name);
 @JS('getDbId')
@@ -57,6 +59,9 @@ Future initIpfs() async {
 }
 Future<String> uploadBinary(Uint8List binary) async{
   return await promiseToFuture(_uploadBinary(binary));
+}
+Future<String> loginDb(String dbId) async{
+  return await promiseToFuture(_login(dbId));
 }
 Future<String> registerUser(String name) async{
   return await promiseToFuture(_registerUser(name));

@@ -16,7 +16,6 @@ class RegisterViewModel extends ChangeNotifier {
   FocusNode countryFN = FocusNode();
   FocusNode passFN = FocusNode();
   FocusNode cPassFN = FocusNode();
-  AuthService auth = AuthService();
 
   register(BuildContext context) async {
     FormState form = formKey.currentState;
@@ -43,8 +42,8 @@ class RegisterViewModel extends ChangeNotifier {
           loading = false;
           notifyListeners();
           print(e);
-          showInSnackBar(
-              '${auth.handleFirebaseAuthError(e.toString())}', context);
+          // showInSnackBar(
+          //     '${auth.handleFirebaseAuthError(e.toString())}', context);
         }
         loading = false;
         notifyListeners();

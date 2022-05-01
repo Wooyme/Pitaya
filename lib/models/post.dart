@@ -37,7 +37,7 @@ class PostModel {
     data['location'] = this.location;
     data['description'] = this.description;
     data['mediaUrl'] = this.mediaUrl;
-    data['timestamp'] = this.timestamp.seconds;
+    data['timestamp'] = this.timestamp?.seconds;
     data['username'] = this.username;
     data['commentAddr'] = this.commentAddr;
     return data;

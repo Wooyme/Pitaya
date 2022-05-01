@@ -94,51 +94,14 @@ class _LoginState extends State<Login> {
           TextFormBuilder(
             enabled: !viewModel.loading,
             prefix: Feather.mail,
-            hintText: "Email",
+            hintText: "Hash Code",
             textInputAction: TextInputAction.next,
-            validateFunction: Validations.validateEmail,
+            validateFunction: Validations.validateName,
             onSaved: (String val) {
               viewModel.setEmail(val);
             },
             focusNode: viewModel.emailFN,
             nextFocusNode: viewModel.passFN,
-          ),
-          SizedBox(height: 15.0),
-          PasswordFormBuilder(
-            enabled: !viewModel.loading,
-            prefix: Feather.lock,
-            suffix: Feather.eye,
-            hintText: "Password",
-            textInputAction: TextInputAction.done,
-            validateFunction: Validations.validatePassword,
-            submitAction: () => viewModel.login(context),
-            obscureText: true,
-            onSaved: (String val) {
-              viewModel.setPassword(val);
-            },
-            focusNode: viewModel.passFN,
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: EdgeInsets.only(right: 10.0),
-              child: InkWell(
-                onTap: () => viewModel.forgotPassword(context),
-                child: Container(
-                  width: 130,
-                  height: 40,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ),
           SizedBox(height: 10.0),
           Container(
